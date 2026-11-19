@@ -1,0 +1,39 @@
+! Fictitious example configuration with deliberate misconfigurations - no real device data.
+version 15.2
+!
+hostname Router
+!
+enable password ExamplePlainEnable1
+!
+username admin privilege 15 password 0 ExamplePlainUser1
+username backup privilege 15 password 7 0A1B2C3D4E5F
+username legacy secret 5 $1$fake$EXAMPLEmd5HashNotReal0
+!
+ip ssh version 1
+ip http server
+!
+interface GigabitEthernet0/0
+ ip address 192.0.2.1 255.255.255.0
+ ip directed-broadcast
+ ip access-group MISSING-ACL in
+!
+interface GigabitEthernet0/1
+ ip address 192.0.2.1 255.255.255.0
+!
+interface GigabitEthernet0/2
+ description nothing configured here
+!
+access-list 101 permit ip any any
+!
+snmp-server community public RO
+snmp-server community ExampleWriteCommunity RW
+!
+line con 0
+ exec-timeout 0 0
+ no login
+line vty 0 4
+ password ExamplePlainVty1
+ login
+ transport input telnet ssh
+!
+end

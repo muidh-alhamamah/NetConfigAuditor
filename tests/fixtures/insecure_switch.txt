@@ -1,0 +1,31 @@
+! Fictitious IOS XE access switch with deliberate misconfigurations - no real device data.
+version 17.6
+service password-encryption
+hostname EXAMPLE-ACCESS-SW1
+security passwords min-length 6
+enable secret 4 EXAMPLEtype4HashNotReal00000000000000000000
+!
+interface Vlan10
+ ip address 198.51.100.2 255.255.255.0
+!
+interface GigabitEthernet1/0/1
+ switchport mode access
+ switchport access vlan 10
+!
+interface GigabitEthernet1/0/2
+!
+ip access-list extended USERS-IN
+ 10 permit ip any any log
+!
+snmp-server community private view ALL RO
+snmp-server community ExampleMonitoring RO UNDEFINED-SNMP-ACL
+!
+logging 198.51.100.50
+ntp server 198.51.100.123
+ip ssh version 2
+!
+line vty 0 15
+ access-class 99 in
+ login local
+!
+end

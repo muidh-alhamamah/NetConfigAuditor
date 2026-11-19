@@ -1,0 +1,72 @@
+! Fictitious example configuration - no real device data.
+version 17.9
+service timestamps debug datetime msec
+service timestamps log datetime msec
+service password-encryption
+!
+hostname EXAMPLE-EDGE-01
+!
+security passwords min-length 12
+enable secret 9 $9$EXAMPLEfakeSALT$EXAMPLEfakeHASHvalueNotReal000000000000000
+!
+aaa new-model
+aaa authentication login default local
+!
+username netadmin privilege 15 secret 9 $9$EXAMPLEfakeSALT$AnotherFakeHashValue111111111111111111111
+!
+ip domain name example.net
+ip ssh version 2
+no ip http server
+ip http secure-server
+!
+banner motd ^C
+Authorized access only. This banner mentions telnet and password on purpose.
+ip http server
+^C
+!
+interface GigabitEthernet0/0
+ description WAN uplink (documentation range)
+ ip address 192.0.2.1 255.255.255.252
+ ip access-group EDGE-IN in
+ no ip directed-broadcast
+!
+interface GigabitEthernet0/1
+ description LAN
+ ip address 198.51.100.1 255.255.255.0
+!
+interface GigabitEthernet0/2
+ description Spare port
+ no ip address
+ shutdown
+!
+interface Loopback0
+ ip address 203.0.113.1 255.255.255.255
+!
+ip access-list standard MGMT-HOSTS
+ 10 permit 198.51.100.10
+ 20 deny any log
+!
+ip access-list extended EDGE-IN
+ 10 permit tcp any host 192.0.2.1 eq 22
+ 20 permit icmp any any echo-reply
+ 30 deny ip any any log
+!
+access-list 20 permit 198.51.100.20
+!
+snmp-server community ExampleRO-community-Not-Real RO 20
+!
+logging host 198.51.100.50
+ntp server 198.51.100.123
+!
+line con 0
+ exec-timeout 5 0
+ login local
+line vty 0 4
+ access-class MGMT-HOSTS in
+ exec-timeout 10 0
+ login local
+ transport input ssh
+line vty 5 15
+ transport input none
+!
+end
