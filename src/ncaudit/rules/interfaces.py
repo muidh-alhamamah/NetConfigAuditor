@@ -8,9 +8,11 @@ from ncaudit.rules.base import Hit, rule
 
 _PHYSICAL = (r"interface\s+(GigabitEthernet|FastEthernet|Ethernet|TenGigabitEthernet|TwentyFiveGigE|"
              r"FortyGigabitEthernet|HundredGigE|Serial)\S*")
-# Any of these means the interface is deliberately configured for use.
-_IN_USE = (r"(ip address\s+\d|ip address dhcp|ipv6 address|switchport|channel-group|encapsulation|"
-           r"xconnect|bridge-group|pppoe|service-instance)")
+# Any of these means the interface is deliberately configured for use. "ip address" covers numeric,
+# dhcp, negotiated and placeholder forms; an explicit "no shutdown" never appears in
+# show running-config, so in a pasted script it signals the port was enabled on purpose.
+_IN_USE = (r"(ip address\s+\S|ip unnumbered\s|ipv6 address|switchport|channel-group|encapsulation|"
+           r"xconnect|bridge-group|pppoe|service-instance|no shutdown$)")
 
 
 @rule("IF-001", Severity.LOW, "Unused interface not shut down",

@@ -118,7 +118,7 @@ server). JSON is ASCII-only, so it stays valid whatever console encoding or redi
 | MGMT-005 | low | `exec-timeout 0 0` / `no exec-timeout` on console, AUX or VTY lines |
 | MGMT-006 | critical | `no login` on a line (access without authentication) |
 | AUTH-001 | high (medium if missing) | `enable password` used, or no `enable secret` at all |
-| AUTH-002 | high | cleartext (type 0) passwords |
+| AUTH-002 | high | cleartext credentials: type 0 or untyped `password`/`secret` (as in saved CLI scripts), SNMPv3 user passphrases |
 | AUTH-003 | medium | reversible type 7 passwords |
 | AUTH-004 | medium (high for type 4) | weak secret hashes: type 5 (MD5) or type 4 |
 | AUTH-005 | low | `service password-encryption` not enabled |
@@ -128,7 +128,7 @@ server). JSON is ASCII-only, so it stays valid whatever console encoding or redi
 | SNMP-003 | medium | community without an access list |
 | ACL-001 | high | ACL entries that permit any source (`permit any`, `permit ip any any`) |
 | ACL-002 | medium | interfaces, VTY lines or SNMP communities referencing an ACL that is not defined |
-| IF-001 | low | physical interfaces with no addressing or switching config that are not shut down |
+| IF-001 | low | physical interfaces with no addressing, switching or explicit `no shutdown` that are not shut down |
 | IF-002 | medium | `ip directed-broadcast` enabled on an interface |
 | OPS-001 | low | missing or factory-default hostname (`Router`, `Switch`) |
 | OPS-002 | low | no NTP server |

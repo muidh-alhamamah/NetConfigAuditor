@@ -99,6 +99,26 @@ class CredentialTests(unittest.TestCase):
         self.assertEqual(ids("username u1 password 7 0A1B2C\n"), ["AUTH-003"])
         self.assertEqual(ids("username u1 secret 9 $9$fake$fake\n"), [])
 
+    def test_untyped_secret_is_cleartext(self) -> None:
+        # Saved CLI scripts contain "secret <value>" as typed; IOS hashes it only when applied.
+        self.assertEqual(rule_ids(BASE.replace("enable secret 9 $9$fake$fake", "enable secret FakePlain1")), ["AUTH-002"])
+        self.assertEqual(ids("username u1 privilege 15 secret FakePlain1\n"), ["AUTH-002"])
+        self.assertEqual(ids("username u1 algorithm-type scrypt secret FakePlain1\n"), ["AUTH-002"])
+        self.assertEqual(ids("username u1 secret 0 FakePlain1\n"), ["AUTH-002"])
+
+    def test_snmpv3_user_passphrases(self) -> None:
+        [f] = findings_for(BASE + "snmp-server user u1 G1 v3 auth sha FakeAuth1 priv aes 128 FakePriv1\n", "AUTH-002")
+        self.assertIn("SNMPv3", f.message)
+        self.assertNotIn("FakeAuth1", f.evidence + f.message)
+        self.assertNotIn("FakePriv1", f.evidence)
+        self.assertEqual(ids("snmp-server group G1 v3 priv\nsnmp-server user u1 G1 v3\n"), [])
+
+    def test_type_digit_without_value(self) -> None:
+        # Sanitized exports sometimes drop the value; the type digit alone still identifies the format.
+        [f] = findings_for(BASE + "username u1 secret 5\n", "AUTH-004")
+        self.assertEqual(f.severity, Severity.MEDIUM)
+        self.assertEqual(ids("username u1 password 7\n"), ["AUTH-003"])
+
     def test_not_passwords(self) -> None:
         self.assertEqual(ids("password encryption aes\n"), [])
 
@@ -155,7 +175,8 @@ class InterfaceAndOpsTests(unittest.TestCase):
     def test_unused_interface(self) -> None:
         self.assertIn("IF-001", ids("interface GigabitEthernet0/3\n description spare\n"))
         for body in (" shutdown", " ip address 192.0.2.9 255.255.255.0", " switchport mode access",
-                     " channel-group 1 mode active"):
+                     " channel-group 1 mode active", " ip address negotiated", " ip address dhcp",
+                     " ip unnumbered Loopback0", " ip address X.X.X.X X.X.X.X", " no shutdown"):
             with self.subTest(body=body):
                 self.assertNotIn("IF-001", ids(f"interface GigabitEthernet0/3\n{body}\n"))
         self.assertNotIn("IF-001", ids("interface Loopback1\n"))
