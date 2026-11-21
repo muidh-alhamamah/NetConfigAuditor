@@ -1,5 +1,7 @@
 # NetConfig Auditor
 
+[![Tests](https://github.com/muidh-alhamamah/NetConfigAuditor/actions/workflows/tests.yml/badge.svg)](https://github.com/muidh-alhamamah/NetConfigAuditor/actions/workflows/tests.yml)
+
 `ncaudit` is a command-line tool that audits saved **Cisco IOS and IOS XE** configuration files for
 common security weaknesses and operational mistakes. For every finding it reports the rule, severity,
 line number, reason and a recommended fix, as a readable text report or as JSON.
