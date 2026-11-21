@@ -181,6 +181,17 @@ class InterfaceAndOpsTests(unittest.TestCase):
                 self.assertNotIn("IF-001", ids(f"interface GigabitEthernet0/3\n{body}\n"))
         self.assertNotIn("IF-001", ids("interface Loopback1\n"))
 
+    def test_unconfigured_ports_on_switches_not_judged(self) -> None:
+        # An empty port on a switch is an access port in VLAN 1 and may be in use.
+        port = "interface GigabitEthernet1/0/5\n negotiation auto\n"
+        for switching in ("spanning-tree mode rapid-pvst\n", "vlan 10\n name USERS\n",
+                          "interface Vlan1\n ip address 192.0.2.2 255.255.255.0\n",
+                          "interface GigabitEthernet1/0/1\n switchport mode access\n"):
+            with self.subTest(switching=switching.split()[0]):
+                self.assertNotIn("IF-001", ids(switching + port))
+        [f] = findings_for(BASE + port, "IF-001")  # router: no switching evidence
+        self.assertIn("no IP address", f.message)
+
     def test_directed_broadcast(self) -> None:
         self.assertIn("IF-002", ids("interface Vlan1\n ip directed-broadcast\n"))
         self.assertNotIn("IF-002", ids("interface Vlan1\n no ip directed-broadcast\n"))

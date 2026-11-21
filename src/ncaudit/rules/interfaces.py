@@ -1,4 +1,4 @@
-"""Interfaces: unused ports left enabled and risky per-interface settings."""
+"""Interfaces: enabled interfaces with no configuration and risky per-interface settings."""
 
 from __future__ import annotations
 
@@ -15,13 +15,24 @@ _IN_USE = (r"(ip address\s+\S|ip unnumbered\s|ipv6 address|switchport|channel-gr
            r"xconnect|bridge-group|pppoe|service-instance|no shutdown$)")
 
 
-@rule("IF-001", Severity.LOW, "Unused interface not shut down",
-      "Administratively disable unused ports with 'shutdown' (and place switch ports in an unused VLAN).")
-def unused_interfaces(config: Config):
+# On a Layer 2 switch an interface with no configuration is still an access port in VLAN 1 and may
+# well be in use; the configuration alone cannot tell, so such devices are not judged.
+_SWITCHING = r"(switchport|spanning-tree\s|vlan\s+\d|interface\s+vlan\d)"
+
+
+def is_switch(config: Config) -> bool:
+    return bool(config.find(_SWITCHING, top_only=False))
+
+
+@rule("IF-001", Severity.LOW, "Enabled router interface without configuration",
+      "If the interface is not in use, disable it with 'shutdown'.")
+def unconfigured_interfaces(config: Config):
+    if is_switch(config):
+        return
     for interface in config.find(_PHYSICAL):
         if not interface.child(r"shutdown$") and not interface.child(_IN_USE):
-            yield Hit(interface, "Physical interface has no addressing or switching configuration "
-                                 "but is enabled.")
+            yield Hit(interface, "The interface is enabled but has no IP address or other configuration "
+                                 "that lets it carry traffic.")
 
 
 @rule("IF-002", Severity.MEDIUM, "IP directed broadcast enabled",

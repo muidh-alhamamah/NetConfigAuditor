@@ -130,7 +130,7 @@ server). JSON is ASCII-only, so it stays valid whatever console encoding or redi
 | SNMP-003 | medium | community without an access list |
 | ACL-001 | high | ACL entries that permit any source (`permit any`, `permit ip any any`) |
 | ACL-002 | medium | interfaces, VTY lines or SNMP communities referencing an ACL that is not defined |
-| IF-001 | low | physical interfaces with no addressing, switching or explicit `no shutdown` that are not shut down |
+| IF-001 | low | router interfaces that are enabled but have no addressing or other configuration (not evaluated on switches, where an unconfigured port may be an active access port) |
 | IF-002 | medium | `ip directed-broadcast` enabled on an interface |
 | OPS-001 | low | missing or factory-default hostname (`Router`, `Switch`) |
 | OPS-002 | low | no NTP server |
@@ -142,8 +142,9 @@ Run `ncaudit rules` for the recommendation attached to each rule.
 ## Scope and limitations
 
 - **Supported**: Cisco IOS and IOS XE configuration text. Banner bodies and `!` comments are ignored.
-- **Not supported**: other vendors and other Cisco operating systems (NX-OS, IOS XR, ASA). These are
-  rejected only if they do not look like IOS at all, so results for them are not meaningful.
+- **Not supported**: other vendors and other Cisco operating systems. FortiOS, Cisco ASA, NX-OS,
+  IOS XR and Junos configurations are recognised and rejected with exit code `2`; other formats are
+  rejected when they contain no recognisable IOS commands.
 - The checks are static: the tool sees only the configuration file, not the running device state,
   the software version's defaults, or the network around it. Some findings (for example a missing
   `transport input`) depend on defaults that vary by IOS version and are reported at reduced severity.

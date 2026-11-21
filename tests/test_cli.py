@@ -46,7 +46,7 @@ class AuditCommandTests(unittest.TestCase):
         report = json.loads(out)
         self.assertEqual((report["tool"], report["version"], report["errors"]), ("ncaudit", __version__, []))
         self.assertEqual([f["file"] for f in report["files"]], [ROUTER, SWITCH])
-        self.assertEqual(report["summary"]["total"], 34)
+        self.assertEqual(report["summary"]["total"], 33)  # switch fixture: IF-001 not judged on switches
         finding = report["files"][0]["findings"][0]
         self.assertEqual(set(finding), {"rule_id", "severity", "title", "line", "message", "recommendation", "evidence"})
         out.encode("ascii")  # ASCII-only JSON
@@ -78,6 +78,16 @@ class AuditCommandTests(unittest.TestCase):
         self.assertEqual(report["summary"]["total"], 25)  # the valid file was still audited
         self.assertIn("ncaudit: error:", err)
         self.assertIn("empty.txt: file is empty", err)
+
+    def test_unsupported_platform_exit_2(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            forti = Path(tmp, "fgt.conf")
+            forti.write_bytes(b"config system global\n    set hostname EXAMPLE-FGT\nend\n")
+            code, out, err = run("audit", str(forti), "-f", "json")
+        self.assertEqual(code, 2)
+        self.assertEqual(json.loads(out)["errors"][0]["error"],
+                         "FortiOS (Fortinet FortiGate) configuration is not supported (only Cisco IOS / IOS XE)")
+        self.assertIn("fgt.conf: FortiOS (Fortinet FortiGate) configuration is not supported", err)
 
     def test_text_error_entry(self) -> None:
         code, out, _ = run("audit", "definitely-missing.cfg")

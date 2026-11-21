@@ -79,6 +79,25 @@ class ReadConfigTests(unittest.TestCase):
         self.assertConfigError(self.write("notes.txt", b"shopping list\nmilk\n"), "does not look like")
         self.assertConfigError(self.write("comments.txt", b"!\n! only comments\n!\n"), "does not look like")
 
+    def test_unsupported_platforms_rejected(self) -> None:
+        samples = {
+            "FortiOS": b"#config-version=FGT60F-7.2.5-FW-build1517:opmode=0\nconfig system global\n"
+                       b"    set hostname EXAMPLE-FGT\nend\nconfig system interface\n    edit port1\n    next\nend\n",
+            "FortiOS (no header)": b"config system global\n    set admin-sport 443\nend\n",
+            "Cisco ASA": b": Saved\n:\nASA Version 9.16(4)\n!\nhostname EXAMPLE-ASA\ninterface GigabitEthernet0/0\n",
+            "Cisco NX-OS": b"version 9.3(8) Bios:version 05.45\nhostname EXAMPLE-N9K\nfeature ospf\ninterface Ethernet1/1\n",
+            "Cisco IOS XR": b"!! IOS XR Configuration 7.3.2\nhostname EXAMPLE-XR\ninterface GigabitEthernet0/0/0/0\n",
+            "Juniper Junos": b"set system host-name EXAMPLE-MX\nset interfaces ge-0/0/0 unit 0 family inet\n",
+        }
+        for name, data in samples.items():
+            expected = name.split(" (")[0]
+            with self.subTest(platform=name):
+                self.assertConfigError(self.write("cfg.txt", data), f"{expected}")
+                self.assertConfigError(self.write("cfg.txt", data), "not supported (only Cisco IOS / IOS XE)")
+
+    def test_end_alone_is_not_ios(self) -> None:
+        self.assertConfigError(self.write("x.txt", b"something else\n    with lines\nend\n"), "does not look like")
+
     def test_too_large(self) -> None:
         path = self.write("big.txt", b"hostname R1\n")
         with unittest.mock.patch("ncaudit.parser.MAX_FILE_BYTES", 5):

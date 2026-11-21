@@ -16,11 +16,20 @@ MAX_FILE_BYTES = 10 * 1024 * 1024
 
 _BANNER_RE = re.compile(r"^banner\s+\S+\s*(.*)$", re.IGNORECASE)
 # At least one of these top-level commands must appear for a file to count as an IOS config.
+# ("end" is deliberately not a marker: FortiOS and other syntaxes use it too.)
 _IOS_MARKER_RE = re.compile(
     r"^(version|hostname|interface|line|router|service|enable|username|aaa|ip|ipv6|"
-    r"access-list|snmp-server|logging|ntp|crypto|boot|vlan|spanning-tree|banner|end)\b",
+    r"access-list|snmp-server|logging|ntp|crypto|boot|vlan|spanning-tree|banner)\b",
     re.IGNORECASE,
 )
+# Syntax that identifies another platform; checked first so the error can name it.
+_UNSUPPORTED_PLATFORMS = [
+    ("FortiOS (Fortinet FortiGate)", re.compile(r"^(#config-version=|config (system|firewall|router|vpn|user|log)\b)", re.M)),
+    ("Cisco ASA", re.compile(r"^(: Saved|(ASA|PIX) Version )", re.M)),
+    ("Cisco NX-OS", re.compile(r"^(feature \S+|boot nxos )", re.M)),
+    ("Cisco IOS XR", re.compile(r"^!! IOS XR", re.M)),
+    ("Juniper Junos", re.compile(r"^(set (system|interfaces|protocols) |(system|interfaces|protocols) \{)", re.M)),
+]
 
 
 @dataclass(eq=False)
@@ -99,6 +108,9 @@ def read_config(path: str | Path) -> Config:
         text = data.decode("latin-1")  # never fails; old configs are often Latin-1
     if not text.strip():
         raise ConfigError("file is empty")
+    for platform, signature in _UNSUPPORTED_PLATFORMS:
+        if signature.search(text):
+            raise ConfigError(f"{platform} configuration is not supported (only Cisco IOS / IOS XE)")
     config = Config(text)
     if not any(_IOS_MARKER_RE.match(line.text) for line in config.top):
         raise ConfigError("does not look like a Cisco IOS configuration")
